@@ -217,15 +217,29 @@ const verifySignature = (data, publicKey, signature) => {
           new Error("verifySignature: Invalid parameter `signature`."));
     }
     
+    let now = new Date(Date.now());
+    now.setMilliseconds(0);
+
+    // Use a span of +/- 10s ([now-10s, now+10s])
+    let span = 10;
+
+    let waitForIntervalFutureBound = ((now, span) => {
+      return (callback) => {
+        let endTime = now.getTime() + (span * 1000);
+        let waitTime = endTime - Date.now();
+        
+        if(waitTime > 0) 
+          setTimeout(callback, waitTime);
+        else 
+          callback();
+      };
+    })(now, span);
+      
+    
     try {
       // Set up some variables...
       let publicKeyBuf = new Buffer(publicKey, 'ascii');
       let signatureBuf = new Buffer(signature, 'base64');
-      let now = new Date(Date.now());
-      now.setMilliseconds(0);
-      
-      // Use a span of +/- 30s ([now-30s, now+30s])
-      let span = 30;
       
       // Cycle through our span...
       for(let i=0; i<=span; i++) {
@@ -253,7 +267,7 @@ const verifySignature = (data, publicKey, signature) => {
           if(verifier.verify(publicKeyBuf, signatureBuf)) {
             // A match means we have cryptographically proven ownership, 
             // resolve true
-            return resolve(true);
+            return waitForIntervalFutureBound(() => resolve(true));
           }
         }
       }
@@ -264,7 +278,7 @@ const verifySignature = (data, publicKey, signature) => {
         `is ${(new Date(Date.now())).toString()}.`);
     } catch(e) {
       // There was some other error, gracefully reject
-      return reject(e);
+      return waitForIntervalFutureBound(() => reject(e));
     }
   });
 };
