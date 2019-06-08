@@ -72,6 +72,10 @@ curl -X POST \
 ```sh
 curl -X GET 'https://myroute53domain.com?alias=test'
 ```
+OR
+```sh
+nslookup test.myroute53domain.com
+```
 #### Response
 ```json
 {
@@ -85,4 +89,10 @@ curl -X GET 'https://myroute53domain.com?alias=test'
 		"updated":"Mon Jan 01 2019 00:00:00 GMT+0000 (UTC)"
 	}
 }
+```
+OR
+```
+Non-authoritative answer:
+Name:	test.myroute53domain.com
+Address: XXX.XXX.XXX.XXX
 ```
