@@ -16,12 +16,11 @@ Provide an anonymous dynamic DNS service using AWS Lambda. Implementation is ent
 - **Anonymous**
 	- Records can be claimed by providing a valid RSA public key and updated using only the corresponding RSA private key to generate a cryptographic signature proving ownership.
 - **Secure**
-	- **Cryptographic proof-of-ownership**
+	- **Cryptographic proof of ownership**
 	- **No secrets over-the-wire**
-		- When a record is claimed, it is done so by providing a valid RSA public key (which the API uses to validate cryptographic ownership of the record upon update). When a client wishes to update a record, it sends only a computed signature to the API which, while this signature is computed from sensitive information (API secret, client UTC timestamp, and client private key), does not reveal said information in any way given the one-way cryptographic nature of generation.
-	- **Impossible to replay requests**
-		- When a client wishes to update an owned record, a UTC timestamp is added to the update payload. The signature is then generated from this payload and sent to the API. The API then checks the signature against a set of signatures generated from a predefined interval of seconds (prior and future) based off of the API's current time. The record in question will only be updated if a matching signature is found in the set of generated signatures by the API. The API waits until the API's current time past the future portion of the interval before returning a result to the client. In this way, replay attacks are not possible.
-
+		- Records are claimed by providing a valid RSA public key to the API. When a client wishes to update a record, it sends only a computed signature to the API which, while this signature is computed from sensitive information (API secret, client UTC timestamp, and client private key), it does not reveal said information in any way given the one-way cryptographic nature in which the signature is generated.
+	- **Replay protection**
+		- When a client wishes to update an owned record, a UTC timestamp is added to the update payload. A signature is then generated from this payload and sent to the API. The API then checks the signature against a set of signatures generated from a predefined interval of seconds (prior and future) based off of the API's current time. The record in question will only be updated if a matching signature is found in the set of generated signatures by the API. The API then waits until the current time is past the termination of the time interval before returning a result to the client.
 ## Example Usage
 ### Creating public/private keypairs
 ```sh
