@@ -459,6 +459,7 @@ exports.handler = (event, context) => {
               'family': ipData.family,
               'alias': lookupData.alias.S,
               'cname': `${alias}.${ROUTE53_DOMAIN_NAME}`,
+              'publicKey': lookupData.publicKey.S,
               'created': formatDate(lookupData.created.N),
               'updated': formatDate(lookupData.updated.N)
             };

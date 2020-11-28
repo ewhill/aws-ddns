@@ -24,25 +24,54 @@ minLineLength() {
     echo -n "$1" | awk '{ print length }' | sort -n | head -1
 }
 
-printTable() {
-    NAMES=""
-    VALUES=""
-    
-    for i; do
-        if [ -z "$NAMES" ]; then
-            NAMES="$i"
-            VALUES="${!i}"
+truncateValue() {
+    if [ -z "$COLUMNS" ]; then
+        # Play it safe...
+        COLUMNS=50
+    fi
+    if [ ! -z "$1" ] && [ ! -z "$2" ] && [ "$2" -gt 0 ]; then
+        if [ ! -z "$COLUMNS" ] && [ "$(echo """$1""" | wc -m)" -gt "$VALUE_LEN_LIMIT" ]; then
+            TRUNCATED="$(echo """$1""" | head -c"""$VALUE_LEN_LIMIT""")"
+            echo "$TRUNCATED..."
         else
-            NAMES="$NAMES"$'\n'"$i"
-            VALUES="$VALUES"$'\n'"${!i}"
+            echo "$1"
+        fi
+    else
+        echo ""
+    fi
+}
+
+printTable() {
+    for i; do
+        NAME="$i"
+        if [ -z "$NAMES" ]; then
+            NAMES="$NAME"
+        else
+            NAMES="$NAMES"$'\n'"$NAME"
         fi
     done
     
-    MAX_VAR_NAME_LEN="$(maxLineLength """$NAMES""")"
     MIN_VAR_NAME_LEN="$(minLineLength """$NAMES""")"
+    MAX_VAR_NAME_LEN="$(maxLineLength """$NAMES""")"
+    VALUE_LEN_LIMIT="$(("""$COLUMNS""" - """$MAX_VAR_NAME_LEN""" - 6 - 3 - 2))"
+    
+    for i; do
+        VALUE="$(truncateValue """${!i}""" """$VALUE_LEN_LIMIT""")"
+        if [ -z "$VALUES" ]; then
+            VALUES="$VALUE"
+        else
+            VALUES="$VALUES"$'\n'"$VALUE"
+        fi
+    done
+    
+    
     MAX_VAR_VALUE_LEN="$(maxLineLength """$VALUES""")"
     MIN_VAR_VALUE_LEN="$(minLineLength """$VALUES""")"
     DIVIDER_LEN="$(("""$MAX_VAR_NAME_LEN""" + """$MAX_VAR_VALUE_LEN""" + 6))"
+    
+    if [ ! -z "$COLUMNS" ] && [ "$DIVIDER_LEN" -gt "$COLUMNS" ]; then
+      DIVIDER_LEN="$(("""$COLUMNS""" - 2))"
+    fi
     
     if [ "$DIVIDER_LEN" -gt 0 ]; then
         DIVIDER="$(head -c """$DIVIDER_LEN""" < /dev/zero | tr '\0' '-')"
@@ -51,11 +80,12 @@ printTable() {
     echo ".$DIVIDER."
     for i; do
         VAR_NAME="$i"
-        VAR_VALUE="${!i}"
+        VAR_VALUE="$(truncateValue """${!i}""" """$VALUE_LEN_LIMIT""")"
         VAR_NAME_LEN="$(echo -n """$VAR_NAME""" | wc -m)"
         VAR_VALUE_LEN="$(echo -n """$VAR_VALUE""" | wc -m)"
         VAR_NAME_PAD_LEN="$(("""$MAX_VAR_NAME_LEN""" - """$VAR_NAME_LEN""" + 1))"
         VAR_VALUE_PAD_LEN="$(("""$MAX_VAR_VALUE_LEN""" - """$VAR_VALUE_LEN""" + 1))"
+        VAR_VAL_TRUNCATED=1
         
         if [ "$VAR_NAME_PAD_LEN" -gt 0 ]; then
             VAR_NAME_PAD="$(head -c """$VAR_NAME_PAD_LEN""" < /dev/zero | tr '\0' ' ')"
@@ -82,10 +112,11 @@ printAliasInfo() {
     IP="$(getJSONPropertyValue """$RESPONSE""" ""address"")"
     FAMILY="$(getJSONPropertyValue """$RESPONSE""" ""family"")"
     CNAME="$(getJSONPropertyValue """$RESPONSE""" ""cname"")"
+    PUBLICKEY="$(getJSONPropertyValue """$RESPONSE""" """publicKey""")"
     CREATED="$(getJSONPropertyValue """$RESPONSE""" ""created"")"
     UPDATED="$(getJSONPropertyValue """$RESPONSE""" ""updated"")"
 
-    printTable "IP" "FAMILY" "CNAME" "CREATED" "UPDATED"
+    printTable "IP" "FAMILY" "CNAME" "PUBLICKEY" "CREATED" "UPDATED"
 }
 
 getJSONPropertyValue() {
